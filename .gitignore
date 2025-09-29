@@ -1,4 +1,8 @@
-.log 
+# Ignore log files
+*.log
+
+# Ignore executable files
+*.exe
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
