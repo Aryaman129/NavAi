@@ -472,7 +472,7 @@ class IntegratedNavigationSystem:
         # Initialize ML speed estimator
         self.speed_estimator = PhysicsInformedSpeedCNN()
         if speed_model_path:
-            self.speed_estimator.load_state_dict(torch.load(speed_model_path))
+            self.speed_estimator.load_state_dict(torch.load(speed_model_path, weights_only=False))
         self.speed_estimator.eval()
         
         # Initialize physics validator

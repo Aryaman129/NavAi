@@ -43,8 +43,8 @@ class ModelExporter:
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         
-        # Load state dict
-        state_dict = torch.load(model_path, map_location=self.device)
+        # Load state dict with weights_only=False for compatibility
+        state_dict = torch.load(model_path, map_location=self.device, weights_only=False)
         model.load_state_dict(state_dict)
         model.eval()
         

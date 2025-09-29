@@ -243,7 +243,7 @@ class LocalTrainer:
                           f'Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}')
         
         # Load best model
-        model.load_state_dict(torch.load(self.config.output_dir / 'best_model.pth'))
+        model.load_state_dict(torch.load(self.config.output_dir / 'best_model.pth', weights_only=False))
         
         return model, train_losses, val_losses
     

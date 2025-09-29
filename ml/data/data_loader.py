@@ -228,20 +228,96 @@ class DataLoader:
             logger.warning("No datasets loaded successfully")
             return self.empty_df()
 
-# Example usage
+    def strip_gps_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Remove GPS data for GPS-denied navigation testing"""
+        logger.info("Stripping GPS data for GPS-denied mode")
+        gps_df = df.copy()
+        gps_cols = ['gps_lat', 'gps_lon', 'gps_speed_mps']
+        for col in gps_cols:
+            if col in gps_df.columns:
+                gps_df[col] = np.nan
+        logger.info("GPS data removed - operating in GPS-denied mode")
+        return gps_df
+
+# Example usage and CLI interface
 if __name__ == "__main__":
-    loader = DataLoader(target_sample_rate=100)
+    import argparse
     
-    # Example: Load NavAI logs
-    # df = loader.load_navai_logs("path/to/navai/logs")
+    parser = argparse.ArgumentParser(description='NavAI Data Loader')
+    parser.add_argument('--dataset', choices=['navai', 'oxiod', 'iovnbd', 'comma2k19', 'synthetic'], 
+                       default='synthetic', help='Dataset to load')
+    parser.add_argument('--path', type=str, help='Path to dataset')
+    parser.add_argument('--output', type=str, help='Output file path (.npz)')
+    parser.add_argument('--ignore-gps', action='store_true', 
+                       help='Strip GPS data for GPS-denied navigation testing')
+    parser.add_argument('--sample-rate', type=int, default=100, 
+                       help='Target sample rate in Hz')
     
-    # Example: Load combined datasets
-    data_paths = {
-        'navai': 'data/navai_logs/',
-        'oxiod': 'data/oxiod/',
-        'iovnbd': 'data/iovnbd/',
-        'comma2k19': 'data/comma2k19/'
-    }
+    args = parser.parse_args()
     
-    # combined_df = loader.load_combined_dataset(data_paths)
-    print("Data loader ready for use")
+    loader = DataLoader(target_sample_rate=args.sample_rate)
+    
+    # Load dataset
+    if args.dataset == 'synthetic':
+        # Create synthetic data for testing
+        logger.info("Generating synthetic dataset")
+        n_samples = 1000
+        timestamps = np.arange(n_samples) * (1e9 / args.sample_rate)
+        
+        df = pd.DataFrame({
+            'timestamp_ns': timestamps,
+            'accel_x': np.random.normal(0, 1, n_samples),
+            'accel_y': np.random.normal(0, 1, n_samples), 
+            'accel_z': np.random.normal(9.81, 1, n_samples),
+            'gyro_x': np.random.normal(0, 0.1, n_samples),
+            'gyro_y': np.random.normal(0, 0.1, n_samples),
+            'gyro_z': np.random.normal(0, 0.1, n_samples),
+            'mag_x': np.random.normal(25, 5, n_samples),
+            'mag_y': np.random.normal(0, 5, n_samples),
+            'mag_z': np.random.normal(-40, 5, n_samples),
+            'qw': np.ones(n_samples),
+            'qx': np.zeros(n_samples),
+            'qy': np.zeros(n_samples), 
+            'qz': np.zeros(n_samples),
+            'gps_lat': np.linspace(40.7128, 40.7138, n_samples),
+            'gps_lon': np.linspace(-74.0060, -74.0050, n_samples),
+            'gps_speed_mps': np.abs(np.random.normal(5, 2, n_samples)),
+            'device': 'synthetic',
+            'source': 'synthetic'
+        })
+    else:
+        if not args.path:
+            logger.error(f"Path required for dataset {args.dataset}")
+            exit(1)
+        
+        if args.dataset == 'navai':
+            df = loader.load_navai_logs(args.path)
+        elif args.dataset == 'oxiod':
+            df = loader.load_oxiod(args.path)
+        elif args.dataset == 'iovnbd':
+            df = loader.load_iovnbd(args.path)
+        elif args.dataset == 'comma2k19':
+            df = loader.load_comma2k19(args.path)
+    
+    # Apply GPS-denied mode if requested
+    if args.ignore_gps:
+        df = loader.strip_gps_data(df)
+    
+    # Save output
+    if args.output:
+        logger.info(f"Saving data to {args.output}")
+        np.savez_compressed(args.output, 
+                           timestamps=df['timestamp_ns'].values,
+                           accel=df[['accel_x', 'accel_y', 'accel_z']].values,
+                           gyro=df[['gyro_x', 'gyro_y', 'gyro_z']].values,
+                           mag=df[['mag_x', 'mag_y', 'mag_z']].values,
+                           quaternion=df[['qw', 'qx', 'qy', 'qz']].values,
+                           gps_coords=df[['gps_lat', 'gps_lon']].values if not args.ignore_gps else None,
+                           gps_speed=df['gps_speed_mps'].values if not args.ignore_gps else None,
+                           device=df['device'].iloc[0] if len(df) > 0 else 'unknown',
+                           source=df['source'].iloc[0] if len(df) > 0 else 'unknown')
+        logger.info(f"Data saved: {len(df)} samples, GPS-denied: {args.ignore_gps}")
+    else:
+        print(f"Loaded {len(df)} samples from {args.dataset}")
+        print(f"GPS-denied mode: {args.ignore_gps}")
+        print("Data loader ready for use")
