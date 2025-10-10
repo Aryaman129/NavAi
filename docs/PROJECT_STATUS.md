@@ -1,12 +1,47 @@
 # 📊 NavAI Project Status
 
-**Last Updated**: October 10, 2025  
+**Last Updated**: October 11, 2025  
 **Purpose**: Current state of the project - bugs, metrics, immediate next steps  
 **Update Frequency**: After every significant change
 
 ---
 
-## 🎯 Current State (October 2025)
+## 🎯 Current State (October 11, 2025)
+
+### 🔴 CRITICAL ISSUES (BLOCKING)
+
+**Issue #1: Speed Prediction Screen Crashes on Android 13+**
+- **Status**: ✅ FIXED (Oct 11) - Added RECEIVER_NOT_EXPORTED flag
+- **Cause**: BroadcastReceiver registration requires explicit export flag on Android 13+
+- **Fix**: Added `Context.RECEIVER_NOT_EXPORTED` flag when registering receiver
+
+**Issue #2: Speed Prediction Not Updating**
+- **Status**: ⏳ INVESTIGATING
+- **Symptoms**: Screen opens but no predictions shown, no broadcasts received
+- **Possible Causes**: 
+  - Service not starting properly
+  - TFLite model not loading
+  - Broadcast not being sent
+  - Missing logging output from service
+
+**Issue #3: Sensor Logger Not Stopping**
+- **Status**: ⏳ INVESTIGATING  
+- **Symptoms**: Stop button doesn't stop logging
+- **Code**: Stop logic exists in SensorLoggerService.stopLogging()
+
+**Issue #4: CSV Files Can't Be Viewed/Shared**
+- **Status**: ⏳ TO FIX
+- **Cause**: exportLogs() returns directory instead of shareable file
+- **Solution Needed**: Implement FileProvider for sharing files
+
+### 🟢 Recently Fixed (Oct 10-11)
+
+✅ **Fix #1**: StateFlow → BroadcastReceiver (cross-process communication)  
+✅ **Fix #2**: Merged duplicate updateLoggingState() in LoggerViewModel  
+✅ **Fix #3**: Added GPS permission check with error logging  
+✅ **Fix #4**: Added comprehensive emoji logging (🚀✅❌📊📡⏳🎯🔄🛑)  
+✅ **Fix #5**: Fixed type mismatches (Int/Long conversions)  
+✅ **Fix #6**: Added RECEIVER_NOT_EXPORTED for Android 13+
 
 ### Training Status - Phase 1 ✅ COMPLETE
 - **Latest Model**: BiLSTM trained on **FULL** 478,891 samples (100% of dataset)

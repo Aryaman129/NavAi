@@ -146,9 +146,19 @@ class SpeedPredictionService : Service(), SensorEventListener {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.i(TAG, "📥 onStartCommand() called - action=${intent?.action}")
         when (intent?.action) {
-            ACTION_START_PREDICTION -> startPrediction()
-            ACTION_STOP_PREDICTION -> stopPrediction()
+            ACTION_START_PREDICTION -> {
+                Log.i(TAG, "➡️ Starting prediction...")
+                startPrediction()
+            }
+            ACTION_STOP_PREDICTION -> {
+                Log.i(TAG, "⏹️ Stopping prediction...")
+                stopPrediction()
+            }
+            else -> {
+                Log.w(TAG, "⚠️ Unknown action: ${intent?.action}")
+            }
         }
         return START_STICKY
     }
@@ -193,7 +203,11 @@ class SpeedPredictionService : Service(), SensorEventListener {
     }
     
     private fun startPrediction() {
-        if (isRunning) return
+        Log.i(TAG, "🎬 startPrediction() called - isRunning=$isRunning")
+        if (isRunning) {
+            Log.w(TAG, "⚠️ Already running, ignoring start request")
+            return
+        }
         
         isRunning = true
         startTime = System.currentTimeMillis()
@@ -201,25 +215,33 @@ class SpeedPredictionService : Service(), SensorEventListener {
         totalError = 0.0
         totalAbsError = 0.0
         
+        Log.d(TAG, "🔄 Resetting predictor...")
         // Reset predictor
         speedPredictor?.reset()
         
+        Log.d(TAG, "🔔 Starting foreground service...")
         // Start foreground service
         startForeground(NOTIFICATION_ID, createNotification("Starting speed prediction..."))
         
         // Register sensors at high frequency
         val sensorDelay = SensorManager.SENSOR_DELAY_FASTEST
         
+        Log.d(TAG, "📊 Registering sensors...")
         accelerometer?.let { 
             sensorManager.registerListener(this, it, sensorDelay)
-        }
+            Log.i(TAG, "✅ Accelerometer registered")
+        } ?: Log.e(TAG, "❌ Accelerometer is null!")
+        
         gyroscope?.let { 
             sensorManager.registerListener(this, it, sensorDelay)
-        }
+            Log.i(TAG, "✅ Gyroscope registered")
+        } ?: Log.e(TAG, "❌ Gyroscope is null!")
         
+        Log.d(TAG, "📡 Starting GPS updates...")
         // Start GPS updates for ground truth
         startGpsUpdates()
         
+        Log.d(TAG, "🔄 Starting prediction loop...")
         // Start prediction loop
         serviceScope.launch {
             predictionLoop()
@@ -235,21 +257,29 @@ class SpeedPredictionService : Service(), SensorEventListener {
         )
         
         updateNotification("Speed prediction running...")
+        Log.i(TAG, "✅ Speed prediction started successfully!")
     }
     
     private fun stopPrediction() {
-        if (!isRunning) return
+        Log.i(TAG, "🛑 stopPrediction() called - isRunning=$isRunning")
+        if (!isRunning) {
+            Log.w(TAG, "⚠️ Not running, ignoring stop request")
+            return
+        }
         
         isRunning = false
         
+        Log.d(TAG, "📊 Unregistering sensors...")
         // Unregister sensors
         sensorManager.unregisterListener(this)
         
+        Log.d(TAG, "📡 Stopping GPS updates...")
         // Stop GPS updates
         fusedLocationClient.removeLocationUpdates(locationCallback)
         
         // Get final stats
         val stats = speedPredictor?.getStats()
+        Log.i(TAG, "📊 Final stats: ${stats?.inferenceCount ?: 0} predictions, avg ${stats?.avgInferenceTimeMs ?: 0}ms")
         
         _predictionState.value = PredictionState.Stopped(
             avgInferenceTimeMs = stats?.avgInferenceTimeMs ?: 0,
