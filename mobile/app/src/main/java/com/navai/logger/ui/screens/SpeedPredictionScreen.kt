@@ -1,6 +1,11 @@
 package com.navai.logger.ui.screens
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,16 +18,59 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.navai.logger.service.PredictionState
 import com.navai.logger.service.SpeedPredictionService
 import kotlin.math.abs
 
 @Composable
 fun SpeedPredictionScreen() {
     val context = LocalContext.current
-    val predictionState by SpeedPredictionService.predictionState.collectAsState()
     
+    // State managed via broadcasts instead of StateFlow
     var isRunning by remember { mutableStateOf(false) }
+    var predictedSpeed by remember { mutableStateOf(0f) }
+    var gpsSpeed by remember { mutableStateOf(0f) }
+    var inferenceTimeMs by remember { mutableStateOf(0L) }
+    var error by remember { mutableStateOf(0f) }
+    var avgError by remember { mutableStateOf(0f) }
+    var sampleCount by remember { mutableStateOf(0) }
+    var serviceState by remember { mutableStateOf("idle") } // "running", "stopped", "error", "idle"
+    var errorMessage by remember { mutableStateOf("") }
+    
+    // Register broadcast receiver for service updates
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                serviceState = intent.getStringExtra(SpeedPredictionService.EXTRA_STATE) ?: "running"
+                
+                when (serviceState) {
+                    "running" -> {
+                        predictedSpeed = intent.getFloatExtra(SpeedPredictionService.EXTRA_PREDICTED_SPEED, 0f)
+                        gpsSpeed = intent.getFloatExtra(SpeedPredictionService.EXTRA_GPS_SPEED, 0f)
+                        inferenceTimeMs = intent.getIntExtra(SpeedPredictionService.EXTRA_INFERENCE_TIME, 0).toLong()
+                        error = intent.getFloatExtra(SpeedPredictionService.EXTRA_ERROR, 0f)
+                        avgError = intent.getFloatExtra(SpeedPredictionService.EXTRA_AVG_ERROR, 0f)
+                        sampleCount = intent.getIntExtra(SpeedPredictionService.EXTRA_SAMPLE_COUNT, 0)
+                    }
+                    "error" -> {
+                        errorMessage = intent.getStringExtra(SpeedPredictionService.EXTRA_ERROR_MESSAGE) ?: "Unknown error"
+                    }
+                }
+            }
+        }
+        
+        val filter = IntentFilter(SpeedPredictionService.BROADCAST_PREDICTION_UPDATE)
+        
+        // Android 13+ requires RECEIVER_NOT_EXPORTED flag for local broadcasts
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        
+        onDispose {
+            context.unregisterReceiver(receiver)
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -40,31 +88,37 @@ fun SpeedPredictionScreen() {
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Main speed display
-        when (val state = predictionState) {
-            is PredictionState.Running -> {
+        // Main speed display based on service state
+        when (serviceState) {
+            "running" -> {
                 SpeedDisplayCard(
-                    predictedSpeed = state.predictedSpeed,
-                    gpsSpeed = state.gpsSpeed,
-                    inferenceTimeMs = state.inferenceTimeMs,
-                    error = state.error,
-                    avgError = state.avgError,
-                    sampleCount = state.sampleCount
+                    predictedSpeed = predictedSpeed,
+                    gpsSpeed = gpsSpeed,
+                    inferenceTimeMs = inferenceTimeMs,
+                    error = error,
+                    avgError = avgError,
+                    sampleCount = sampleCount
                 )
             }
-            is PredictionState.Stopped -> {
-                StatsCard(
-                    avgInferenceTimeMs = state.avgInferenceTimeMs,
-                    minInferenceTimeMs = state.minInferenceTimeMs,
-                    maxInferenceTimeMs = state.maxInferenceTimeMs,
-                    totalPredictions = state.totalPredictions,
-                    avgAbsError = state.avgAbsError
+            "stopped" -> {
+                // Show final stats when stopped
+                Text(
+                    text = "Prediction Stopped",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = "Total predictions: $sampleCount",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Avg error: ${String.format("%.2f", avgError)} m/s",
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
-            is PredictionState.Error -> {
+            "error" -> {
                 ErrorCard(
-                    message = state.message,
-                    details = state.details
+                    message = "Prediction Error",
+                    details = errorMessage
                 )
             }
             else -> {

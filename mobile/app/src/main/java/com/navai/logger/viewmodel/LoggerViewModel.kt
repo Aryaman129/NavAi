@@ -44,12 +44,22 @@ class LoggerViewModel(application: Application) : AndroidViewModel(application) 
     
     /**
      * Update logging state from service broadcast
+     * @param startTime optional start time for duration calculation (default: 0)
      */
-    fun updateLoggingState(isLogging: Boolean, sampleCount: Long) {
-        Log.d(TAG, "updateLoggingState: isLogging=$isLogging, sampleCount=$sampleCount")
+    fun updateLoggingState(isLogging: Boolean, sampleCount: Long, startTime: Long = 0) {
+        Log.d(TAG, "updateLoggingState: isLogging=$isLogging, sampleCount=$sampleCount, startTime=$startTime")
+        
+        val duration = if (isLogging && startTime > 0) {
+            val elapsed = (System.currentTimeMillis() - startTime) / 1000
+            String.format("%02d:%02d", elapsed / 60, elapsed % 60)
+        } else {
+            "00:00"
+        }
+        
         _uiState.value = _uiState.value.copy(
             isLogging = isLogging,
-            sampleCount = sampleCount
+            sampleCount = sampleCount,
+            duration = duration
         )
     }
     
@@ -119,23 +129,6 @@ class LoggerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(message = null)
-    }
-    
-    // Simulate logging state updates
-    // In a real implementation, this would come from the service
-    fun updateLoggingState(isLogging: Boolean, sampleCount: Long = 0, startTime: Long = 0) {
-        val duration = if (isLogging && startTime > 0) {
-            val elapsed = (System.currentTimeMillis() - startTime) / 1000
-            String.format("%02d:%02d", elapsed / 60, elapsed % 60)
-        } else {
-            "00:00"
-        }
-        
-        _uiState.value = _uiState.value.copy(
-            isLogging = isLogging,
-            sampleCount = sampleCount,
-            duration = duration
-        )
     }
     
     override fun onCleared() {

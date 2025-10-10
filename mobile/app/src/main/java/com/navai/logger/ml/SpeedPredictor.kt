@@ -92,6 +92,11 @@ class SpeedPredictor(context: Context) {
             dataWindow.removeFirst()
         }
         dataWindow.addLast(sample)
+        
+        // Log when window fills up for the first time
+        if (dataWindow.size == WINDOW_SIZE && inferenceCount == 0) {
+            Log.i(TAG, "🎯 Window full ($WINDOW_SIZE samples) - ready for inference!")
+        }
     }
     
     /**
@@ -100,6 +105,10 @@ class SpeedPredictor(context: Context) {
      */
     fun predictSpeed(): PredictionResult? {
         if (dataWindow.size < WINDOW_SIZE) {
+            // Log buffering progress every 20 samples
+            if (dataWindow.size % 20 == 0 && dataWindow.size > 0) {
+                Log.d(TAG, "⏳ Buffering: ${dataWindow.size}/$WINDOW_SIZE samples")
+            }
             return null // Not enough data yet
         }
         
