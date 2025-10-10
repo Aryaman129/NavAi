@@ -1,0 +1,663 @@
+# ============ Python ============# ============ Python ============# ============ Python ============
+
+__pycache__/
+
+*.py[cod]__pycache__/
+
+*$py.class
+
+*.so*.py[cod]# Byte-compiled / optimized / DLL files__pycache__/*.py[cod]
+
+*.pyc
+data/ 
+
+
+*.pyc
+
+# Virtual environments
+
+.venv/.venv/__pycache__/
+
+.venv_wsl/
+
+venv/.venv_wsl/
+
+ENV/
+
+env/venv/*.py[cod]*.py[cod]*$py.class
+
+
+
+# Distribution*.egg-info/
+
+*.egg-info/
+
+dist/*$py.class
+
+build/
+
+# ============ Data - IGNORE ALL ============
+
+# ============ Data - IGNORE ALL ============
+
+data/data/*.so*$py.class*.so
+
+
+
+# ============ Machine Learning - IGNORE ALL MODELS & OUTPUTS ============
+
+ml/outputs/*.keras
+
+ml/outputs/*.h5# ============ Machine Learning Outputs ============*.pyc
+
+ml/outputs/checkpoints/
+
+ml/outputs/tensorboard/ml/outputs/*.keras
+
+ml/outputs/temp/
+
+ml/training/checkpoints/ml/outputs/*.h5*.pyc
+
+
+
+# Keep ONLY the deployed TFLite modelml/outputs/checkpoints/
+
+!ml/outputs/phase1_model.tflite
+
+ml/outputs/tensorboard/# Virtual environments
+
+# ============ Android Build & IDE ============
+
+.gradle/ml/outputs/temp/
+
+.kotlin/
+
+.idea/.venv/# Virtual environments
+
+*.iml
+
+local.properties# Keep only TFLite model for Android
+
+
+
+# Mobile build directories!ml/outputs/phase1_model.tflite.venv_wsl/
+
+mobile/.gradle/
+
+mobile/.idea/
+
+mobile/.kotlin/
+
+mobile/build/# ============ Android Build ============venv/# ============ Virtual Environments ============.venv/
+
+mobile/app/build/
+
+mobile/sensor-fusion/build/.gradle/
+
+mobile/**/build/
+
+mobile/.gradle/ENV/
+
+# APK outputs
+
+*.apkmobile/.idea/
+
+*.aab
+
+mobile/.kotlin/env/.venv/.venv_wsl/
+
+# ============ Logs ============
+
+*.logmobile/build/
+
+logs/
+
+hs_err_pid*.logmobile/app/build/
+
+replay_pid*.log
+
+mobile/sensor-fusion/build/
+
+# ============ OS & IDE ============
+
+.DS_Store**/build/# Distribution / packaging.venv_wsl/venv/
+
+Thumbs.db
+
+Desktop.ini*.apk
+
+$RECYCLE.BIN/
+
+.vscode/*.aabdevelop-eggs/
+
+*.swp
+
+*.swo
+
+*~
+
+# ============ IDE ============dist/venv/ENV/
+
+# ============ Other ============
+
+.dist/.idea/
+
+.codacy/
+
+*.tmp.vscode/downloads/
+
+*.temp
+
+*.bak*.iml
+
+*.cache
+
+eggs/ENV/env/
+
+# ============ KEEP These Files ============
+
+!gradlew# ============ Logs ============
+
+!gradlew.bat
+
+!gradle/wrapper/gradle-wrapper.jar*.log.eggs/
+
+!gradle/wrapper/gradle-wrapper.properties
+
+logs/
+
+lib/env/
+
+# ============ OS ============
+
+.DS_Storelib64/.venv_wsl/ 
+
+Thumbs.db
+
+parts/
+
+# ============ Temp Files ============
+
+*.tmpsdist/
+
+*.temp
+
+*.bakwheels/.vscode/develop-eggs/
+
+
+*.egg-info/
+
+.installed.cfgdist/
+
+*.egg
+
+# ============ Android Build & IDE ============
+
+# PyInstaller# Android Studio / IntelliJ
+
+*.manifest.idea/
+
+*.spec*.iml
+
+.gradle/
+
+# Jupyter Notebook.kotlin/
+
+.ipynb_checkpointslocal.properties
+
+
+
+# pyenv# Gradle build directories
+
+.python-versionmobile/build/
+
+mobile/app/build/
+
+# ============ Machine Learning ============mobile/sensor-fusion/build/
+
+# Large model files (>5MB, regeneratable)mobile/.gradle/
+
+ml/outputs/*.kerasmobile/.idea/
+
+*.h5mobile/.kotlin/
+
+*.hdf5**/build/# PyInstaller
+
+*.pb
+
+*.ckpt*.manifest
+
+*.pth
+
+*.pt# APK outputs*.spec
+
+*.safetensors
+
+*.apk
+
+# Keep essential deployed models
+
+!ml/outputs/phase1_model.tflite*.aab# Jupyter Notebook
+
+!ml/outputs/phase1_preprocessor.pkl
+
+!ml/outputs/phase1_training_curves.png.ipynb_checkpoints
+
+!ml/outputs/phase1_model_metadata.json
+
+!ml/outputs/preprocessor_params.json
+
+# Large model files (>5MB, regeneratable)
+
+# Keep TFLite models (they're deployed to Android)
+
+!*.tfliteml/outputs/*.keras# pyenv
+
+!ml/outputs/*.tflite
+
+*.h5.python-version
+
+# Temporary ML outputs
+
+ml/outputs/checkpoints/*.hdf5
+
+ml/outputs/tensorboard/
+
+ml/outputs/temp/# Keep essential deployed models# Model files (large binary files)
+
+
+
+# ============ Android Build & IDE ============!ml/outputs/phase1_model.tflite*.h5
+
+# Android Studio / IntelliJ
+
+.idea/!ml/outputs/phase1_preprocessor.pkl*.hdf5
+
+*.iml
+
+.kotlin/!ml/outputs/phase1_training_curves.png*.pb
+
+local.properties
+
+!ml/outputs/phase1_model_metadata.json*.ckpt
+
+# Gradle
+
+.gradle/!ml/outputs/preprocessor_params.json*.pth
+
+mobile/.gradle/
+
+mobile/.idea/*.pt
+
+mobile/.kotlin/
+
+# Temporary ML outputs*.safetensors
+
+# Build directories
+
+mobile/build/ml/outputs/checkpoints/
+
+mobile/app/build/
+
+mobile/sensor-fusion/build/ml/outputs/tensorboard/# Keep TFLite models (they're deployed to Android)
+
+**/build/
+
+ml/outputs/temp/!*.tflite
+
+# APK/AAB outputs (except release)
+
+*.apk!ml/outputs/*.tflite
+
+*.aab
+
+*.ap_# Comma2k19 raw data (large, downloadable)
+
+*.dex
+
+data/comma2k19/current_chunk/# Training outputs (except final models)
+
+# Keep intentionally committed files
+
+!mobile/app/release/*.apkdata/comma2k19/raw_tar/ml/outputs/checkpoints/
+
+
+
+# Signing files (NEVER commit!)data/comma2k19/processed_real/parsed/ml/outputs/tensorboard/
+
+*.jks
+
+*.keystoreml/outputs/temp/
+
+key.properties
+
+# Keep processed parquet files (compressed, essential)
+
+# ProGuard
+
+proguard/!data/comma2k19/processed_real/*.parquet# ============ Data Files ============
+
+mapping.txt
+
+# Large datasets (download separately)
+
+# Android captures
+
+captures/# Other dataset raw datadata/comma2k19/raw/
+
+.externalNativeBuild
+
+.cxx/data/euroc/raw/data/comma2k19/raw_tar/
+
+
+
+# ============ Data Files ============data/kitti/raw/data/euroc/raw/
+
+# Large datasets (download separately)
+
+data/comma2k19/raw/data/oxiod/raw/data/kitti/raw/
+
+data/comma2k19/raw_tar/
+
+data/comma2k19/current_chunk/data/oxiod/raw/
+
+data/euroc/raw/
+
+data/kitti/raw/# Large archive files
+
+data/oxiod/raw/
+
+*.tar.gz# Processed data (can be regenerated)
+
+# Large archive files
+
+*.tar.gz*.tar.bz2data/*/processed/*.csv
+
+*.tar.bz2
+
+*.zipChunk_*.zipdata/*/processed/*.npy
+
+*.7z
+
+Chunk_*.zipdata/*/processed/*.npz
+
+
+
+# Processed data (can be regenerated)# All log files# Keep small sample data
+
+data/*/processed/*.csv
+
+data/*/processed/*.npy*.log!data/comma2k19/processed/sample_*.csv
+
+data/*/processed/*.npz
+
+logs/*.log
+
+# Keep small sample data
+
+data/comma2k19/processed/sample_*.csv# Archives and downloads
+
+
+
+# Keep processed parquet files (compressed, essential)# JVM crash logs*.tar.gz
+
+data/comma2k19/processed_real/*.parquet
+
+hs_err_pid*.log*.tar.bz2
+
+# ============ Logs & Debugging ============
+
+# Application logsreplay_pid*.log*.zip
+
+*.log
+
+logs/*.7z
+
+*.log.**.log
+
+
+
+# Crash reports# Windows
+
+hs_err_pid*.log
+
+replay_pid*.logThumbs.db# Installers
+
+
+
+# ============ IDE & Editors ============Desktop.ini*.exe
+
+# VS Code
+
+.vscode/$RECYCLE_BIN/*.msi
+
+!.vscode/settings.json
+
+!.vscode/tasks.jsonminiconda_installer.exe
+
+!.vscode/launch.json
+
+!.vscode/extensions.json# macOS
+
+
+
+# PyCharm.DS_Store# ============ Android ============
+
+.idea/
+
+*.iws# Gradle
+
+*.iml
+
+*.ipr# Temporary files.gradle/
+
+
+
+# Vim*.tmp**/build/
+
+*.swp
+
+*.swo*.temp!gradle-wrapper.jar
+
+*~
+
+*.bak
+
+# Emacs
+
+*~*.swp# Local configuration
+
+\#*\#
+
+.\#**.cachelocal.properties
+
+
+
+# ============ OS Files ============gradle.properties
+
+# Windows
+
+Thumbs.db
+
+ehthumbs.db# Codacy reports (not source code)# Android Studio
+
+Desktop.ini
+
+$RECYCLE.BIN/.codacy/.idea/
+
+
+
+# macOS*.iml
+
+.DS_Store
+
+.AppleDouble# Distribution artifacts.DS_Store
+
+.LSOverride
+
+.dist/captures/
+
+# Linux
+
+*~.externalNativeBuild
+
+.directory
+
+# Files already removed from project.cxx/
+
+# ============ Temporary Files ============
+
+*.tmpminiconda_installer.exe
+
+*.temp
+
+*.bakcomma2k19.torrent# Signing files (NEVER commit!)
+
+*.cache
+
+.temp/download_comma2k19.bat*.jks
+
+tmp/
+
+*.keystore
+
+# ============ Specific Exclusions ============key.properties
+
+# Codacy (keep configuration, ignore reports)
+
+.codacy/# APK/AAB outputs (except release)
+
+!.codacy/coverage.xml*.apk
+
+*.aab
+
+# Distribution artifacts*.ap_
+
+.dist/*.dex
+
+
+
+# Test outputs# Keep intentionally committed files
+
+test_output/!mobile/app/release/*.apk
+
+*.test
+
+# ProGuard
+
+# ============ KEEP These Important Files ============proguard/
+
+# Scripts are version controlled!mapping.txt
+
+!*.sh
+
+!*.bat# ============ Logs & Debugging ============
+
+!*.ps1# Application logs
+
+!scripts/**/*.sh*.log
+
+!scripts/**/*.batlogs/
+
+!scripts/**/*.ps1*.log.*
+
+
+
+# Keep gradle wrapper# Crash reports
+
+!gradlewhs_err_pid*.log
+
+!gradlew.batreplay_pid*.log
+
+!gradle/wrapper/gradle-wrapper.jar
+
+!gradle/wrapper/gradle-wrapper.properties# ============ IDE & Editors ============
+
+# VS Code
+
+# Keep important configs.vscode/
+
+!.github/**!.vscode/settings.json
+
+!.gitignore!.vscode/tasks.json
+
+!README.md!.vscode/launch.json
+
+!requirements.txt!.vscode/extensions.json
+
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+.tests/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============ OS Files ============
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.directory
+
+# ============ Temporary Files ============
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+.temp/
+tmp/
+
+# ============ Specific Exclusions ============
+# Codacy (keep configuration, ignore reports)
+.codacy/
+!.codacy/coverage.xml
+
+# Distribution artifacts
+.dist/
+
+# Test outputs
+test_output/
+*.test
+
+# ============ KEEP These Important Files ============
+# Scripts are version controlled!
+*.sh
+*.bat
+*.ps1
+scripts/**/*.sh
+scripts/**/*.bat
+scripts/**/*.ps1
+
+# Keep gradle wrapper
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Keep important configs
+!.github/**
+!.gitignore
+!README.md
+!requirements.txt
+

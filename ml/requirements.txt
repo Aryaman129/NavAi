@@ -1,0 +1,50 @@
+# Core data processing
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# TensorFlow for mobile deployment
+tensorflow>=2.15.0
+tensorflow-addons>=0.21.0
+tflite-support>=0.4.2
+
+# Data visualization and analysis
+plotly>=5.15.0
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+ipywidgets>=8.0.0
+
+# Hyperparameter optimization
+optuna>=3.3.0
+wandb>=0.15.0
+
+# File handling and utilities
+h5py>=3.9.0
+tqdm>=4.65.0
+pyyaml>=6.0
+
+# Sensor data processing
+filterpy>=1.4.5
+pykalman>=0.9.5
+
+# Optional: for advanced signal processing
+pywavelets>=1.4.0
+librosa>=0.10.0
+
+# Development and testing
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Notebook extensions
+nbconvert>=7.7.0
+nbformat>=5.9.0

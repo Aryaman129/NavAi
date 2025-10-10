@@ -1,0 +1,42 @@
+{
+  "model_type": "BiLSTM Speed Estimator",
+  "input_shape": [
+    1,
+    100,
+    6
+  ],
+  "output_shape": [
+    1,
+    1
+  ],
+  "window_size": 100,
+  "num_features": 6,
+  "tflite_size_mb": 1.28,
+  "normalization": {
+    "accel_mean": [
+      -0.17596448957920074,
+      0.11679186671972275,
+      -9.858774185180664
+    ],
+    "accel_std": [
+      0.7395502924919128,
+      0.5717578530311584,
+      0.5367711782455444
+    ],
+    "gyro_mean": [
+      -0.0005764242960140109,
+      -0.0006974652060307562,
+      -0.0005761462380178273
+    ],
+    "gyro_std": [
+      0.016289766877889633,
+      0.03152802214026451,
+      0.032519467175006866
+    ]
+  },
+  "usage": {
+    "input": "Window of 100 IMU readings [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]",
+    "output": "Predicted speed in m/s",
+    "preprocessing": "Normalize: (value - mean) / std for each feature"
+  }
+}
