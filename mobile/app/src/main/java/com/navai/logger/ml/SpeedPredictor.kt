@@ -32,6 +32,7 @@ class SpeedPredictor(context: Context) {
     
     private var interpreter: Interpreter? = null
     private var metadata: ModelMetadata? = null
+    private var initializationError: String? = null
     
     // Sliding window for IMU data
     private val dataWindow = ArrayDeque<FloatArray>(WINDOW_SIZE)
@@ -43,18 +44,51 @@ class SpeedPredictor(context: Context) {
     private var maxInferenceTime = 0L
     
     init {
+        Log.i(TAG, "🔄 SpeedPredictor initialization starting...")
+        
         try {
+            // Check if model files exist in assets
+            val assetList = context.assets.list("")
+            Log.i(TAG, "📂 Assets available: ${assetList?.take(10)?.joinToString()}")
+            
+            if (assetList?.contains(MODEL_FILE) != true) {
+                throw RuntimeException("❌ Model file $MODEL_FILE not found in assets!")
+            }
+            
+            if (assetList?.contains(METADATA_FILE) != true) {
+                throw RuntimeException("❌ Metadata file $METADATA_FILE not found in assets!")
+            }
+            
             // Load model
+            Log.i(TAG, "📥 Loading model file: $MODEL_FILE...")
             val modelBuffer = loadModelFile(context, MODEL_FILE)
+            Log.i(TAG, "✅ Model loaded: ${modelBuffer.capacity()} bytes (${modelBuffer.capacity() / 1024 / 1024}MB)")
+            
+            // Configure interpreter options
             val options = Interpreter.Options().apply {
                 setNumThreads(4) // Use 4 CPU threads for inference
-                setUseNNAPI(true) // Try to use Android NNAPI for acceleration
+                try {
+                    setUseNNAPI(true) // Try to use Android NNAPI for acceleration
+                    Log.i(TAG, "🚀 NNAPI acceleration enabled")
+                } catch (e: Exception) {
+                    Log.w(TAG, "⚠️ NNAPI not available, using CPU fallback: ${e.message}")
+                }
             }
+            
+            // Create interpreter
+            Log.i(TAG, "🔨 Creating TFLite interpreter...")
             interpreter = Interpreter(modelBuffer, options)
-            Log.i(TAG, "✅ TFLite model loaded successfully")
-            Log.i(TAG, "   Model file: $MODEL_FILE (${modelBuffer.capacity() / 1024 / 1024}MB)")
+            Log.i(TAG, "✅ Interpreter created successfully")
+            
+            // Verify tensor shapes
+            val inputTensor = interpreter!!.getInputTensor(0)
+            val outputTensor = interpreter!!.getOutputTensor(0)
+            Log.i(TAG, "📊 Input tensor shape: ${inputTensor.shape().contentToString()}")
+            Log.i(TAG, "📊 Output tensor shape: ${outputTensor.shape().contentToString()}")
+            Log.i(TAG, "📊 Input data type: ${inputTensor.dataType()}")
             
             // Load metadata (normalization parameters)
+            Log.i(TAG, "📥 Loading metadata file: $METADATA_FILE...")
             metadata = loadMetadata(context, METADATA_FILE)
             Log.i(TAG, "✅ Model metadata loaded")
             Log.i(TAG, "   Window size: ${metadata?.window_size}")
@@ -64,11 +98,20 @@ class SpeedPredictor(context: Context) {
             Log.i(TAG, "   Gyro mean: ${metadata?.gyro_mean}")
             Log.i(TAG, "   Gyro std: ${metadata?.gyro_std}")
             
+            Log.i(TAG, "🎉 SpeedPredictor initialization COMPLETE!")
+            
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to initialize SpeedPredictor", e)
-            Log.e(TAG, "   Error type: ${e.javaClass.simpleName}")
-            Log.e(TAG, "   Error message: ${e.message}")
-            Log.e(TAG, "   Stack trace: ${e.stackTraceToString()}")
+            val errorMsg = "Failed to initialize SpeedPredictor: ${e.javaClass.simpleName}: ${e.message}"
+            initializationError = errorMsg
+            
+            Log.e(TAG, "❌ $errorMsg", e)
+            Log.e(TAG, "   Exception type: ${e.javaClass.name}")
+            Log.e(TAG, "   Message: ${e.message}")
+            Log.e(TAG, "   Stack trace:")
+            e.printStackTrace()
+            
+            // Re-throw so service knows initialization failed
+            throw RuntimeException("SpeedPredictor initialization failed", e)
         }
     }
     
@@ -193,6 +236,16 @@ class SpeedPredictor(context: Context) {
      * Get current window size
      */
     fun getWindowSize(): Int = dataWindow.size
+    
+    /**
+     * Check if predictor is properly initialized
+     */
+    fun isInitialized(): Boolean = interpreter != null && metadata != null
+    
+    /**
+     * Get initialization error if any
+     */
+    fun getInitializationError(): String? = initializationError
     
     /**
      * Clean up resources

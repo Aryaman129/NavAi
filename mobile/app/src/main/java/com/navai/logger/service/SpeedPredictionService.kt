@@ -95,20 +95,25 @@ class SpeedPredictionService : Service(), SensorEventListener {
         
         // Initialize TFLite predictor
         try {
+            Log.i(TAG, "🔄 Initializing SpeedPredictor...")
             speedPredictor = SpeedPredictor(this)
-            Log.i(TAG, "✅ SpeedPredictor initialized successfully")
+            Log.i(TAG, "✅ SpeedPredictor object created")
             
             // Verify predictor initialized correctly
-            if (speedPredictor == null) {
-                Log.e(TAG, "❌ SpeedPredictor returned null")
+            if (speedPredictor?.isInitialized() != true) {
+                val error = speedPredictor?.getInitializationError() ?: "Unknown initialization error"
+                Log.e(TAG, "❌ SpeedPredictor initialization failed: $error")
                 _predictionState.value = PredictionState.Error(
-                    message = "Failed to initialize speed predictor",
-                    details = "SpeedPredictor returned null"
+                    message = "Failed to initialize TFLite model",
+                    details = error
                 )
-                broadcastError("Failed to initialize speed predictor", "SpeedPredictor returned null")
+                broadcastError("Failed to initialize TFLite model", error)
+            } else {
+                Log.i(TAG, "✅ SpeedPredictor fully initialized and ready")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error initializing TFLite model: ${e.message}", e)
+            Log.e(TAG, "❌ Error creating SpeedPredictor: ${e.message}", e)
+            speedPredictor = null
             _predictionState.value = PredictionState.Error(
                 message = "Error initializing TFLite model",
                 details = "${e.javaClass.simpleName}: ${e.message}"
@@ -206,6 +211,18 @@ class SpeedPredictionService : Service(), SensorEventListener {
         Log.i(TAG, "🎬 startPrediction() called - isRunning=$isRunning")
         if (isRunning) {
             Log.w(TAG, "⚠️ Already running, ignoring start request")
+            return
+        }
+        
+        // Check if model is initialized before starting
+        if (speedPredictor?.isInitialized() != true) {
+            val error = speedPredictor?.getInitializationError() ?: "Model not initialized"
+            Log.e(TAG, "❌ Cannot start prediction - model not initialized: $error")
+            broadcastError("Cannot start prediction", error)
+            _predictionState.value = PredictionState.Error(
+                message = "TFLite model not initialized",
+                details = error
+            )
             return
         }
         

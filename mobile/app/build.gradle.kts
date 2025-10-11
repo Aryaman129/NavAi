@@ -53,6 +53,16 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // Prevent compression of TFLite model files
+        // Memory-mapping requires uncompressed files
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+    
+    // Ensure .tflite files are not compressed in the APK
+    androidResources {
+        noCompress += "tflite"
     }
 }
 
