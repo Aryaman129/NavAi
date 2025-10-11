@@ -38,16 +38,18 @@ class MainActivity : ComponentActivity() {
     
     private val loggingStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            Log.i(TAG, "🎯 BROADCAST RECEIVED!")
             val isLogging = intent.getBooleanExtra(
                 SensorLoggerService.EXTRA_IS_LOGGING, false
             )
             val sampleCount = intent.getLongExtra(
                 SensorLoggerService.EXTRA_SAMPLE_COUNT, 0L
             )
-            Log.d(TAG, "Received broadcast: isLogging=$isLogging, samples=$sampleCount")
+            Log.i(TAG, "   isLogging=$isLogging, samples=$sampleCount")
             
             // Update ViewModel
             viewModel.updateLoggingState(isLogging, sampleCount)
+            Log.i(TAG, "   ✅ ViewModel updated")
         }
     }
     
@@ -75,10 +77,10 @@ class MainActivity : ComponentActivity() {
             ViewModelProvider.AndroidViewModelFactory.getInstance(application)
         ).get(LoggerViewModel::class.java)
         
-        // Register broadcast receiver
+        // Register broadcast receiver for Service→Activity communication
         val filter = IntentFilter(SensorLoggerService.BROADCAST_LOGGING_STATE)
-        registerReceiver(loggingStateReceiver, filter, RECEIVER_NOT_EXPORTED)
-        Log.d(TAG, "BroadcastReceiver registered")
+        registerReceiver(loggingStateReceiver, filter, RECEIVER_EXPORTED)
+        Log.d(TAG, "BroadcastReceiver registered with RECEIVER_EXPORTED")
         
         // Request permissions
         permissionLauncher.launch(requiredPermissions)

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -40,8 +41,10 @@ fun SpeedPredictionScreen() {
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
+                Log.i("SpeedPredictionScreen", "🎯 BROADCAST RECEIVED!")
                 val state = intent.getStringExtra(SpeedPredictionService.EXTRA_STATE) ?: "running"
                 serviceState = state
+                Log.i("SpeedPredictionScreen", "   State: $state")
                 
                 when (state) {
                     "running" -> {
@@ -52,6 +55,7 @@ fun SpeedPredictionScreen() {
                         error = intent.getFloatExtra(SpeedPredictionService.EXTRA_ERROR, 0f)
                         avgError = intent.getFloatExtra(SpeedPredictionService.EXTRA_AVG_ERROR, 0f)
                         sampleCount = intent.getIntExtra(SpeedPredictionService.EXTRA_SAMPLE_COUNT, 0)
+                        Log.i("SpeedPredictionScreen", "   ✅ UI updated: speed=$predictedSpeed km/h")
                     }
                     "stopped" -> {
                         isRunning = false
@@ -66,9 +70,9 @@ fun SpeedPredictionScreen() {
         
         val filter = IntentFilter(SpeedPredictionService.BROADCAST_PREDICTION_UPDATE)
         
-        // Android 13+ requires RECEIVER_NOT_EXPORTED flag for local broadcasts
+        // Android 13+ requires RECEIVER_EXPORTED flag for Service→Activity broadcasts
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
         } else {
             context.registerReceiver(receiver, filter)
         }
