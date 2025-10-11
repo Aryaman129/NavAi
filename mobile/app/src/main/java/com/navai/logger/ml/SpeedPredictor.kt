@@ -64,20 +64,35 @@ class SpeedPredictor(context: Context) {
             val modelBuffer = loadModelFile(context, MODEL_FILE)
             Log.i(TAG, "✅ Model loaded: ${modelBuffer.capacity()} bytes (${modelBuffer.capacity() / 1024 / 1024}MB)")
             
-            // Configure interpreter options
-            val options = Interpreter.Options().apply {
-                setNumThreads(4) // Use 4 CPU threads for inference
-                try {
-                    setUseNNAPI(true) // Try to use Android NNAPI for acceleration
-                    Log.i(TAG, "🚀 NNAPI acceleration enabled")
-                } catch (e: Exception) {
-                    Log.w(TAG, "⚠️ NNAPI not available, using CPU fallback: ${e.message}")
+            // CRITICAL: Cascade fallback for delegate initialization
+            // NNAPI may fail on some devices (e.g., Snapdragon 8+ Gen 1 doesn't support BiLSTM)
+            interpreter = try {
+                // ATTEMPT 1: Try NNAPI acceleration first
+                Log.i(TAG, "🚀 Attempting NNAPI delegate...")
+                val nnApiOptions = Interpreter.Options().apply {
+                    setNumThreads(4)
+                    setUseNNAPI(true)
                 }
+                val interp = Interpreter(modelBuffer, nnApiOptions)
+                Log.i(TAG, "✅ SUCCESS: NNAPI delegate active!")
+                interp
+                
+            } catch (e: Exception) {
+                // NNAPI failed - fall back to CPU-only mode
+                Log.w(TAG, "⚠️ NNAPI failed: ${e.javaClass.simpleName}: ${e.message}")
+                Log.i(TAG, "🔄 Falling back to CPU-only mode...")
+                
+                // ATTEMPT 2: Pure CPU mode (always works)
+                val cpuOptions = Interpreter.Options().apply {
+                    setNumThreads(4)  // Utilize all 4 high-performance cores
+                    // NO delegates - pure CPU inference
+                }
+                val interp = Interpreter(modelBuffer, cpuOptions)
+                Log.i(TAG, "✅ SUCCESS: CPU-only mode active (4 threads)")
+                Log.i(TAG, "   Expected latency: 10-20ms per prediction")
+                interp
             }
             
-            // Create interpreter
-            Log.i(TAG, "🔨 Creating TFLite interpreter...")
-            interpreter = Interpreter(modelBuffer, options)
             Log.i(TAG, "✅ Interpreter created successfully")
             
             // Verify tensor shapes
@@ -268,8 +283,33 @@ class SpeedPredictor(context: Context) {
     }
     
     private fun loadMetadata(context: Context, filename: String): ModelMetadata {
-        val json = context.assets.open(filename).bufferedReader().use { it.readText() }
-        return Json.decodeFromString<ModelMetadata>(json)
+        try {
+            // Read JSON from assets
+            val json = context.assets.open(filename).bufferedReader().use { it.readText() }
+            
+            // Strip UTF-8 BOM if present (EF BB BF = \uFEFF)
+            // Some text editors add this automatically to UTF-8 files
+            // JSON parsers don't handle it - must be removed manually
+            val cleanJson = if (json.isNotEmpty() && json[0] == '\uFEFF') {
+                Log.w(TAG, "⚠️ UTF-8 BOM detected in $filename - removing it")
+                json.substring(1)  // Remove first character
+            } else {
+                json
+            }
+            
+            Log.d(TAG, "📄 JSON first 50 chars: ${cleanJson.take(50)}")
+            
+            // Parse JSON to ModelMetadata
+            // ignoreUnknownKeys = true allows extra fields in JSON (e.g., input_shape, output_shape)
+            // that aren't defined in the Kotlin data class - this is safe because we only need
+            // the normalization parameters, not the architectural metadata
+            val jsonParser = Json { ignoreUnknownKeys = true }
+            return jsonParser.decodeFromString<ModelMetadata>(cleanJson)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to load metadata from $filename", e)
+            throw RuntimeException("Metadata loading failed: ${e.message}", e)
+        }
     }
 }
 
