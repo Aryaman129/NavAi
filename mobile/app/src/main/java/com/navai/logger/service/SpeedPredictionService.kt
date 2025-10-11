@@ -116,7 +116,7 @@ class SpeedPredictionService : Service(), SensorEventListener {
             broadcastError("Error initializing TFLite model", "${e.javaClass.simpleName}: ${e.message}")
         }
         
-        // Initialize sensors
+        // Initialize sensors (but DON'T register them yet - wait for START command)
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         
@@ -129,7 +129,7 @@ class SpeedPredictionService : Service(), SensorEventListener {
             )
             broadcastError("Accelerometer not available", "Device does not have an accelerometer sensor")
         } else {
-            Log.i(TAG, "✅ Accelerometer available")
+            Log.i(TAG, "✅ Accelerometer available: ${accelerometer?.name}, vendor: ${accelerometer?.vendor}")
         }
         if (gyroscope == null) {
             Log.e(TAG, "❌ Gyroscope not available")
@@ -139,7 +139,7 @@ class SpeedPredictionService : Service(), SensorEventListener {
             )
             broadcastError("Gyroscope not available", "Device does not have a gyroscope sensor")
         } else {
-            Log.i(TAG, "✅ Gyroscope available")
+            Log.i(TAG, "✅ Gyroscope available: ${gyroscope?.name}, vendor: ${gyroscope?.vendor}")
         }
         
         createNotificationChannel()
@@ -214,35 +214,55 @@ class SpeedPredictionService : Service(), SensorEventListener {
         predictionCount = 0
         totalError = 0.0
         totalAbsError = 0.0
+        lastUpdateTime = 0L
+        
+        // Reset latest sensor data
+        latestAccel = null
+        latestGyro = null
         
         Log.d(TAG, "🔄 Resetting predictor...")
-        // Reset predictor
         speedPredictor?.reset()
         
         Log.d(TAG, "🔔 Starting foreground service...")
-        // Start foreground service
         startForeground(NOTIFICATION_ID, createNotification("Starting speed prediction..."))
         
-        // Register sensors at high frequency
-        val sensorDelay = SensorManager.SENSOR_DELAY_FASTEST
+        // Register sensors ONLY when starting (not in onCreate)
+        Log.d(TAG, "📊 Registering sensors with SENSOR_DELAY_FASTEST...")
         
-        Log.d(TAG, "📊 Registering sensors...")
-        accelerometer?.let { 
-            sensorManager.registerListener(this, it, sensorDelay)
-            Log.i(TAG, "✅ Accelerometer registered")
+        var accelRegistered = false
+        var gyroRegistered = false
+        
+        accelerometer?.let { sensor ->
+            Log.i(TAG, "� Accelerometer: ${sensor.name}, Vendor: ${sensor.vendor}, MinDelay: ${sensor.minDelay}μs")
+            accelRegistered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST)
+            if (accelRegistered) {
+                Log.i(TAG, "✅ Accelerometer registered successfully")
+            } else {
+                Log.e(TAG, "❌ Failed to register accelerometer!")
+            }
         } ?: Log.e(TAG, "❌ Accelerometer is null!")
         
-        gyroscope?.let { 
-            sensorManager.registerListener(this, it, sensorDelay)
-            Log.i(TAG, "✅ Gyroscope registered")
+        gyroscope?.let { sensor ->
+            Log.i(TAG, "� Gyroscope: ${sensor.name}, Vendor: ${sensor.vendor}, MinDelay: ${sensor.minDelay}μs")
+            gyroRegistered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST)
+            if (gyroRegistered) {
+                Log.i(TAG, "✅ Gyroscope registered successfully")
+            } else {
+                Log.e(TAG, "❌ Failed to register gyroscope!")
+            }
         } ?: Log.e(TAG, "❌ Gyroscope is null!")
         
+        if (!accelRegistered || !gyroRegistered) {
+            Log.e(TAG, "❌ CRITICAL: Sensor registration failed! accel=$accelRegistered, gyro=$gyroRegistered")
+            broadcastError("Sensor registration failed", "Accelerometer: $accelRegistered, Gyroscope: $gyroRegistered")
+            isRunning = false
+            return
+        }
+        
         Log.d(TAG, "📡 Starting GPS updates...")
-        // Start GPS updates for ground truth
         startGpsUpdates()
         
         Log.d(TAG, "🔄 Starting prediction loop...")
-        // Start prediction loop
         serviceScope.launch {
             predictionLoop()
         }
@@ -281,13 +301,24 @@ class SpeedPredictionService : Service(), SensorEventListener {
         val stats = speedPredictor?.getStats()
         Log.i(TAG, "📊 Final stats: ${stats?.inferenceCount ?: 0} predictions, avg ${stats?.avgInferenceTimeMs ?: 0}ms")
         
-        _predictionState.value = PredictionState.Stopped(
+        val stoppedState = PredictionState.Stopped(
             avgInferenceTimeMs = stats?.avgInferenceTimeMs ?: 0,
             minInferenceTimeMs = stats?.minInferenceTimeMs ?: 0,
             maxInferenceTimeMs = stats?.maxInferenceTimeMs ?: 0,
             totalPredictions = predictionCount,
             avgAbsError = if (predictionCount > 0) (totalAbsError / predictionCount).toFloat() else 0f
         )
+        
+        _predictionState.value = stoppedState
+        
+        // Broadcast stopped state to UI
+        val intent = Intent(BROADCAST_PREDICTION_UPDATE).apply {
+            putExtra(EXTRA_STATE, "stopped")
+            putExtra(EXTRA_SAMPLE_COUNT, predictionCount)
+            putExtra(EXTRA_AVG_ERROR, stoppedState.avgAbsError)
+        }
+        sendBroadcast(intent)
+        Log.d(TAG, "📡 Broadcast sent: state=stopped, samples=$predictionCount")
         
         // Stop foreground service
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -325,8 +356,10 @@ class SpeedPredictionService : Service(), SensorEventListener {
     }
     
     override fun onSensorChanged(event: SensorEvent) {
-        if (!isRunning) return
+        // Log sensor events (use VERBOSE level to avoid spam)
+        Log.v(TAG, "📱 SENSOR: ${getSensorTypeName(event.sensor.type)} = ${event.values.contentToString()}")
         
+        // Update latest sensor values regardless of running state
         when (event.sensor.type) {
             Sensor.TYPE_ACCELEROMETER -> {
                 latestAccel = event.values.clone()
@@ -336,7 +369,11 @@ class SpeedPredictionService : Service(), SensorEventListener {
             }
         }
         
-        // Add sample when both sensors are updated
+        // Only process samples when prediction is running AND predictor is initialized
+        if (!isRunning || speedPredictor == null) {
+            return
+        }
+        
         val accel = latestAccel
         val gyro = latestGyro
         
@@ -347,7 +384,16 @@ class SpeedPredictionService : Service(), SensorEventListener {
             if (currentTime - lastUpdateTime >= 10_000_000) { // 10ms = 100Hz
                 speedPredictor?.addSample(accel, gyro)
                 lastUpdateTime = currentTime
+                Log.v(TAG, "✅ Sample added to predictor")
             }
+        }
+    }
+    
+    private fun getSensorTypeName(type: Int): String {
+        return when (type) {
+            Sensor.TYPE_ACCELEROMETER -> "Accel"
+            Sensor.TYPE_GYROSCOPE -> "Gyro"
+            else -> "Unknown($type)"
         }
     }
     
@@ -361,6 +407,12 @@ class SpeedPredictionService : Service(), SensorEventListener {
         
         while (isRunning) {
             loopCount++
+            
+            // Log loop progress every 10 iterations
+            if (loopCount % 10 == 1) {
+                val windowSize = speedPredictor?.getWindowSize() ?: 0
+                Log.d(TAG, "🔄 Loop #$loopCount, calling predictSpeed()... (window: $windowSize/100)")
+            }
             
             // Try to predict speed
             val result = speedPredictor?.predictSpeed()
@@ -377,7 +429,12 @@ class SpeedPredictionService : Service(), SensorEventListener {
                 
                 val avgError = if (predictionCount > 0) (totalAbsError / predictionCount).toFloat() else 0f
                 
-                // Broadcast update to UI (replaces StateFlow)
+                // Log prediction
+                Log.i(TAG, "📊 Prediction #$predictionCount: ${String.format("%.1f", result.speedKmh)} km/h, " +
+                        "GPS: ${String.format("%.1f", gpsSpeed * 3.6f)} km/h, error: ${String.format("%.2f", error)} m/s, " +
+                        "latency: ${result.inferenceTimeMs}ms")
+                
+                // Broadcast update to UI
                 broadcastPredictionUpdate(
                     predictedSpeed = result.speedKmh,
                     gpsSpeed = gpsSpeed * 3.6f,  // Convert to km/h
@@ -397,19 +454,19 @@ class SpeedPredictionService : Service(), SensorEventListener {
                     sampleCount = predictionCount
                 )
                 
-                // Log every 10th prediction
-                if (predictionCount % 10 == 0) {
-                    Log.d(TAG, "📊 Prediction #$predictionCount: ${String.format("%.1f", result.speedKmh)} km/h, " +
-                            "GPS: ${String.format("%.1f", gpsSpeed * 3.6f)} km/h, error: ${String.format("%.2f", error)} m/s")
-                }
-                
-                // Update notification
-                if (predictionCount % 10 == 0) {
+                // Update notification every 5 predictions
+                if (predictionCount % 5 == 0) {
                     updateNotification(
                         "Speed: ${String.format("%.1f", result.speedKmh)} km/h " +
                         "(GPS: ${String.format("%.1f", gpsSpeed * 3.6f)} km/h) " +
                         "| Latency: ${result.inferenceTimeMs}ms"
                     )
+                }
+            } else {
+                // Log buffering progress
+                if (loopCount % 10 == 1) {
+                    val windowSize = speedPredictor?.getWindowSize() ?: 0
+                    Log.d(TAG, "⏳ Buffering: $windowSize/100 samples")
                 }
             }
             
@@ -451,10 +508,30 @@ class SpeedPredictionService : Service(), SensorEventListener {
     }
     
     override fun onDestroy() {
-        super.onDestroy()
+        Log.i(TAG, "🔚 Service destroying")
+        
+        // Always unregister sensors to prevent leaks
+        try {
+            sensorManager.unregisterListener(this)
+            Log.i(TAG, "✅ Sensors unregistered")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error unregistering sensors: ${e.message}")
+        }
+        
+        // Stop GPS updates
+        try {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+            Log.i(TAG, "✅ GPS updates stopped")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error stopping GPS: ${e.message}")
+        }
+        
+        // Cancel coroutines and close predictor
         serviceScope.cancel()
         speedPredictor?.close()
-        stopPrediction()
+        
+        super.onDestroy()
+        Log.i(TAG, "✅ Service destroyed successfully")
     }
 }
 

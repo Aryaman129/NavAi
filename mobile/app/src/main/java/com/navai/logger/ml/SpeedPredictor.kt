@@ -190,6 +190,11 @@ class SpeedPredictor(context: Context) {
     }
     
     /**
+     * Get current window size
+     */
+    fun getWindowSize(): Int = dataWindow.size
+    
+    /**
      * Clean up resources
      */
     fun close() {

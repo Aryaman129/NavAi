@@ -40,10 +40,12 @@ fun SpeedPredictionScreen() {
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                serviceState = intent.getStringExtra(SpeedPredictionService.EXTRA_STATE) ?: "running"
+                val state = intent.getStringExtra(SpeedPredictionService.EXTRA_STATE) ?: "running"
+                serviceState = state
                 
-                when (serviceState) {
+                when (state) {
                     "running" -> {
+                        isRunning = true
                         predictedSpeed = intent.getFloatExtra(SpeedPredictionService.EXTRA_PREDICTED_SPEED, 0f)
                         gpsSpeed = intent.getFloatExtra(SpeedPredictionService.EXTRA_GPS_SPEED, 0f)
                         inferenceTimeMs = intent.getIntExtra(SpeedPredictionService.EXTRA_INFERENCE_TIME, 0).toLong()
@@ -51,7 +53,11 @@ fun SpeedPredictionScreen() {
                         avgError = intent.getFloatExtra(SpeedPredictionService.EXTRA_AVG_ERROR, 0f)
                         sampleCount = intent.getIntExtra(SpeedPredictionService.EXTRA_SAMPLE_COUNT, 0)
                     }
+                    "stopped" -> {
+                        isRunning = false
+                    }
                     "error" -> {
+                        isRunning = false
                         errorMessage = intent.getStringExtra(SpeedPredictionService.EXTRA_ERROR_MESSAGE) ?: "Unknown error"
                     }
                 }
