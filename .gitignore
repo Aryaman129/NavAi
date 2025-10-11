@@ -661,3 +661,5 @@ scripts/**/*.ps1
 !README.md
 !requirements.txt
 
+notebooks/
+ml/notebooks/
