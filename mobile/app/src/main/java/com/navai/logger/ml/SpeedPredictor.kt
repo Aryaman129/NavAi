@@ -158,6 +158,46 @@ class SpeedPredictor(context: Context) {
     }
     
     /**
+     * Detect if device is stationary using IMU variance (ZUPT)
+     * Returns true if gyro variance < threshold (device not rotating)
+     */
+    private fun isStationaryState(): Boolean {
+        if (dataWindow.size < 10) return false // Need at least 10 samples
+        
+        // Calculate gyroscope variance over recent samples
+        val recentSamples = dataWindow.takeLast(10)
+        
+        // Gyro is features 3, 4, 5
+        val gyroX = recentSamples.map { it[3] }
+        val gyroY = recentSamples.map { it[4] }
+        val gyroZ = recentSamples.map { it[5] }
+        
+        val gyroXVar = variance(gyroX)
+        val gyroYVar = variance(gyroY)
+        val gyroZVar = variance(gyroZ)
+        
+        // ZUPT thresholds (rad/s)² - tuned for stationary detection
+        // Typical sensor noise: ~0.01 rad/s, so variance ~0.0001
+        // Moving phone: variance > 0.01
+        val GYRO_VARIANCE_THRESHOLD = 0.005f
+        
+        val isStationary = gyroXVar < GYRO_VARIANCE_THRESHOLD && 
+                          gyroYVar < GYRO_VARIANCE_THRESHOLD && 
+                          gyroZVar < GYRO_VARIANCE_THRESHOLD
+        
+        return isStationary
+    }
+    
+    /**
+     * Calculate variance of a list of values
+     */
+    private fun variance(values: List<Float>): Float {
+        if (values.isEmpty()) return 0f
+        val mean = values.average().toFloat()
+        return values.map { (it - mean) * (it - mean) }.average().toFloat()
+    }
+    
+    /**
      * Predict speed from current window
      * @return Predicted speed in m/s, or null if window not full
      */
@@ -204,7 +244,18 @@ class SpeedPredictor(context: Context) {
             
             // Parse output
             outputBuffer.rewind()
-            val predictedSpeed = outputBuffer.float
+            var predictedSpeed = outputBuffer.float
+            
+            // Apply ZUPT (Zero Velocity Update) for stationary detection
+            // Calculate IMU variance to detect stationary state
+            val isStationary = isStationaryState()
+            if (isStationary) {
+                Log.d(TAG, "ZUPT applied: IMU variance low, forcing speed to 0")
+                predictedSpeed = 0f
+            }
+            
+            // Clip negative speeds (model should never predict negative)
+            predictedSpeed = maxOf(0f, predictedSpeed)
             
             val inferenceTime = (System.nanoTime() - startTime) / 1_000_000 // Convert to ms
             

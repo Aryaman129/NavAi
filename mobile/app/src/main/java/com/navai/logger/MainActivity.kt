@@ -38,18 +38,12 @@ class MainActivity : ComponentActivity() {
     
     private val loggingStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.i(TAG, "🎯 BROADCAST RECEIVED!")
-            val isLogging = intent.getBooleanExtra(
-                SensorLoggerService.EXTRA_IS_LOGGING, false
-            )
-            val sampleCount = intent.getLongExtra(
-                SensorLoggerService.EXTRA_SAMPLE_COUNT, 0L
-            )
-            Log.i(TAG, "   isLogging=$isLogging, samples=$sampleCount")
-            
-            // Update ViewModel
-            viewModel.updateLoggingState(isLogging, sampleCount)
-            Log.i(TAG, "   ✅ ViewModel updated")
+            Log.d(TAG, "Broadcast received in MainActivity")
+            val isLogging = intent.getBooleanExtra(SensorLoggerService.EXTRA_IS_LOGGING, false)
+            val sampleCount = intent.getLongExtra(SensorLoggerService.EXTRA_SAMPLE_COUNT, 0L)
+            val startTime = intent.getLongExtra(SensorLoggerService.EXTRA_START_TIME, 0L)
+            Log.d(TAG, "isLogging=$isLogging, sampleCount=$sampleCount, startTime=$startTime")
+            viewModel.updateLoggingState(isLogging, sampleCount, startTime)
         }
     }
     

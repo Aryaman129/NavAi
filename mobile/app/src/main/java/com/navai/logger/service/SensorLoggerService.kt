@@ -29,6 +29,7 @@ class SensorLoggerService : Service(), SensorEventListener {
         const val BROADCAST_LOGGING_STATE = "com.navai.logger.LOGGING_STATE"
         const val EXTRA_IS_LOGGING = "is_logging"
         const val EXTRA_SAMPLE_COUNT = "sample_count"
+        const val EXTRA_START_TIME = "start_time"
         
         private const val TARGET_SAMPLE_RATE_HZ = 100
         private const val GPS_UPDATE_INTERVAL_MS = 200L
@@ -248,10 +249,11 @@ class SensorLoggerService : Service(), SensorEventListener {
         sensorDataQueue.offer(sensorData)
         sampleCount++
         
-        // Update notification periodically
+        // Update notification and broadcast UI state periodically
         if (sampleCount % 1000 == 0L) {
             val duration = (System.currentTimeMillis() - startTime) / 1000
             updateNotification("Logged ${sampleCount} samples (${duration}s)")
+            broadcastLoggingState()  // Broadcast every 1000 samples
         }
     }
     
@@ -324,6 +326,7 @@ class SensorLoggerService : Service(), SensorEventListener {
         val intent = Intent(BROADCAST_LOGGING_STATE).apply {
             putExtra(EXTRA_IS_LOGGING, isLogging)
             putExtra(EXTRA_SAMPLE_COUNT, sampleCount)
+            putExtra(EXTRA_START_TIME, startTime)
         }
         sendBroadcast(intent)
     }
